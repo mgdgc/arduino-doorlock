@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Doorlock</string>
+
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+
+    <string name="lock">Lock</string>
+    <string name="unlock">Unlock</string>
+    <string name="bluetooth_connect">Connect bluetooth device</string>
+    <string name="bluetooth_connected">Doorlock is connected.</string>
+    <string name="bluetooth_not_connected">Disconnected.</string>
 </resources>

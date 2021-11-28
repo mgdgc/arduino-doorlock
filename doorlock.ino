@@ -23,41 +23,51 @@ const byte PIN_KEY_ROWS[KEY_ROWS] = {13, 12, 11, 10};
 const byte PIN_KEY_COLS[KEY_COLS] = {9, 8, 7, 6};
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-SoftwareSerial bt(PIN_BT_RX, PIN_BT_TX);
+SoftwareSerial bt(PIN_BT_TX, PIN_BT_RX);
 Keypad pad = Keypad(makeKeymap(KEYS),
                     PIN_KEY_ROWS, PIN_KEY_COLS,
                     KEY_ROWS, KEY_COLS);
 Servo servo;
 
 char password[6] = {'0', '0', '0', '0', '0', '0'};
+char input[6] = {'n', 'n', 'n', 'n', 'n', 'n'};
+byte inputCursor = 0;
 
 byte mode = 0;
+boolean locked = false;
+
+void printMenu();
+void clearInput();
+boolean checkPw();
 
 void setup() {
   // put your setup code here, to run once:
+
+  Serial.begin(9600);
 
   // Initialize servo
   servo.attach(PIN_SERVO);
   servo.write(0);
 
   // Initiailize bluetooth
-  bt.write("AT+NAMEDoorlock");
-  bt.write("AT+PIN000000");
+  bt.begin(9600);
 
   // Initialize button (proximity replacement)
   pinMode(PIN_PROXIMITY, INPUT);
-  
+
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("Initial password");
-  lcd.setCursor(1, 1);
+  lcd.setCursor(5, 1);
   lcd.print("000000");
 
   char key;
   while (!(key = pad.getKey())) {
     delay(100);
   }
+
+  printMenu();
 
 }
 
@@ -69,8 +79,16 @@ void loop() {
   //if (proximity > 800) {
   //  servo.write(90);
   //}
-  if (digitalRead(PIN_PROXIMITY) == HIGH) {
+  if (digitalRead(PIN_PROXIMITY) && !locked) {
+    locked = true;
     servo.write(90);
+
+    lcd.init();
+    lcd.setCursor(5, 0);
+    lcd.print("Locked");
+
+    delay(1000);
+    printMenu();
   }
 
   // Waiting for bluetooth
@@ -84,28 +102,87 @@ void loop() {
           break;
         }
       }
-      
+
+      if (pass) {
+        servo.write(0);
+
+        lcd.init();
+        lcd.setCursor(3, 0);
+        lcd.print("Bluetooth");
+        lcd.setCursor(4, 1);
+        lcd.print("Unlocked");
+
+        delay(1000);
+        printMenu();
+
+      }
+
     } else if (data == 'l') {
       servo.write(90);
+
+      lcd.init();
+      lcd.setCursor(3, 0);
+      lcd.print("Bluetooth");
+      lcd.setCursor(5, 1);
+      lcd.print("Locked");
+
+      delay(1000);
+      printMenu();
     }
   }
-  
+
+
+  char key = pad.getKey();
+
+  if (!key) {
+    delay(50);
+    return;
+  }
+
   switch (mode) {
     case 0: // Main menu mode
-      lcd.init();
-      lcd.setCursor(1, 0);
-      lcd.print("1. Unlock");
-      lcd.setCursor(1, 1);
-      lcd.print("2. Settings");
-
-      char key = pad.getKey();
-
-      if (key == 1) {
+      if (key == '1') {
         mode = 1;
+        printMenu();
       }
       break;
 
     case 1: // Unlock mode
+
+      input[inputCursor] = key;
+      lcd.setCursor(5 + inputCursor++, 1);
+      lcd.print(key);
+      if (inputCursor >= 6) {
+        if (checkPw()) {
+          clearInput();
+
+          locked = false;
+          servo.write(0);
+
+          lcd.init();
+          lcd.setCursor(4, 0);
+          lcd.print("Welcome!");
+          lcd.setCursor(4, 1);
+          lcd.print("Unlocked");
+
+          delay(1000);
+
+        } else {
+          clearInput();
+
+          lcd.init();
+          lcd.setCursor(5, 0);
+          lcd.print("Wrong");
+          lcd.setCursor(4, 1);
+          lcd.print("Password");
+
+          delay(1000);
+        }
+        // Clear input
+        mode = 0;
+        printMenu();
+
+      }
       break;
 
     case 2: // Settings mode
@@ -113,4 +190,43 @@ void loop() {
   }
 
   delay(50);
+}
+
+void printMenu() {
+  lcd.init();
+  switch (mode) {
+    case 0: // Main menu mode
+      lcd.setCursor(1, 0);
+      lcd.print("1. Unlock");
+      lcd.setCursor(1, 1);
+      lcd.print("2. Settings");
+      break;
+
+    case 1: // Unlock mode
+      lcd.setCursor(4, 0);
+      lcd.print("Password");
+      break;
+
+    case 2: // Settings mode
+      break;
+  }
+}
+
+void clearInput() {
+  for (int i = 0; i < 6; i++) {
+    input[i] = 'n';
+  }
+  inputCursor = 0;
+}
+
+boolean checkPw() {
+  boolean correct = true;
+  for (int i = 0; i < 6; i++) {
+    if (password[i] != input[i]) {
+      correct = false;
+      break;
+    }
+  }
+
+  return correct;
 }
