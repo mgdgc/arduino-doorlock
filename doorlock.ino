@@ -35,6 +35,7 @@ byte inputCursor = 0;
 
 byte mode = 0;
 boolean locked = false;
+boolean pwChecked = false;
 
 void printMenu();
 void clearInput();
@@ -57,10 +58,10 @@ void setup() {
 
   lcd.init();
   lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Initial password");
-  lcd.setCursor(5, 1);
-  lcd.print("000000");
+  lcd.setCursor(3, 0);
+  lcd.print("PW: 000000");
+  lcd.setCursor(0, 1);
+  lcd.print("Press any button");
 
   char key;
   while (!(key = pad.getKey())) {
@@ -144,14 +145,18 @@ void loop() {
       if (key == '1') {
         mode = 1;
         printMenu();
+      } else if (key == '2') {
+        mode = 2;
+        printMenu();
       }
       break;
 
     case 1: // Unlock mode
 
-      input[inputCursor] = key;
-      lcd.setCursor(5 + inputCursor++, 1);
+      input[inputCursor++] = key;
+      lcd.setCursor(4 + inputCursor, 1);
       lcd.print(key);
+
       if (inputCursor >= 6) {
         if (checkPw()) {
           clearInput();
@@ -168,7 +173,6 @@ void loop() {
           delay(1000);
 
         } else {
-          clearInput();
 
           lcd.init();
           lcd.setCursor(5, 0);
@@ -178,6 +182,7 @@ void loop() {
 
           delay(1000);
         }
+
         // Clear input
         mode = 0;
         printMenu();
@@ -186,6 +191,50 @@ void loop() {
       break;
 
     case 2: // Settings mode
+      input[inputCursor++] = key;
+      lcd.setCursor(4 + inputCursor, 1);
+      lcd.print(key);
+
+      if (inputCursor >= 6) {
+        if (pwChecked) {
+          pwChecked = false;
+
+          for (int i = 0; i < 6; i++) {
+            password[i] = input[i];
+          }
+
+          lcd.init();
+          lcd.setCursor(4, 0);
+          lcd.print("Password");
+          lcd.setCursor(4, 1);
+          lcd.print("Changed!");
+
+          delay(1000);
+
+          mode = 0;
+          printMenu();
+
+        } else {
+          if (checkPw()) {
+            pwChecked = true;
+            printMenu();
+          } else {
+            pwChecked = false;
+
+            lcd.init();
+            lcd.setCursor(5, 0);
+            lcd.print("Wrong");
+            lcd.setCursor(4, 1);
+            lcd.print("Password");
+
+            delay(1000);
+
+            mode = 0;
+            printMenu();
+          }
+        }
+        clearInput();
+      }
       break;
   }
 
@@ -199,7 +248,7 @@ void printMenu() {
       lcd.setCursor(1, 0);
       lcd.print("1. Unlock");
       lcd.setCursor(1, 1);
-      lcd.print("2. Settings");
+      lcd.print("2. Change PW");
       break;
 
     case 1: // Unlock mode
@@ -208,6 +257,13 @@ void printMenu() {
       break;
 
     case 2: // Settings mode
+      if (pwChecked) {
+        lcd.setCursor(2, 0);
+        lcd.print("Enter new pw");
+      } else {
+        lcd.setCursor(4, 0);
+        lcd.print("Enter pw");
+      }
       break;
   }
 }
