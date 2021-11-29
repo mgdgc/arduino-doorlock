@@ -292,7 +292,6 @@ class MainActivity : AppCompatActivity() {
         val cmdCharacteristic = BluetoothUtils.findCommandCharacteristic(btGatt!!)
         // disconnect if the characteristic is not found
         if (cmdCharacteristic == null) {
-            Log.e("write", "no characteristic")
             disconnectGattServer()
             return
         }
@@ -300,7 +299,6 @@ class MainActivity : AppCompatActivity() {
         cmdCharacteristic.value = cmdBytes
         val success: Boolean = btGatt!!.writeCharacteristic(cmdCharacteristic)
         if (!success) {
-            Log.e("write", "Failed")
         }
     }
 
