@@ -14,8 +14,7 @@ const char KEYS[KEY_ROWS][KEY_COLS] = {
 };
 
 const byte PIN_THERMAL = A2;
-//const byte PIN_PROXIMITY = A3;
-const byte PIN_PROXIMITY = 2;
+const byte PIN_DOOR_SENSOR = 2;
 const byte PIN_BT_RX = 4;
 const byte PIN_BT_TX = 5;
 const byte PIN_SERVO = 3;
@@ -54,7 +53,7 @@ void setup() {
   bt.begin(9600);
 
   // Initialize button (proximity replacement)
-  pinMode(PIN_PROXIMITY, INPUT);
+  pinMode(PIN_DOOR_SENSOR, INPUT);
 
   lcd.init();
   lcd.backlight();
@@ -76,11 +75,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   // Detect door closing
-  //int proximity = analogRead(PIN_PROXIMITY);
-  //if (proximity > 800) {
-  //  servo.write(90);
-  //}
-  if (digitalRead(PIN_PROXIMITY) && !locked) {
+  if (!digitalRead(PIN_DOOR_SENSOR) && !locked) {
     locked = true;
     servo.write(90);
 
@@ -113,7 +108,7 @@ void loop() {
         lcd.setCursor(4, 1);
         lcd.print("Unlocked");
 
-        delay(1000);
+        delay(3000);
         printMenu();
 
       }
@@ -170,7 +165,7 @@ void loop() {
           lcd.setCursor(4, 1);
           lcd.print("Unlocked");
 
-          delay(1000);
+          delay(3000);
 
         } else {
 
