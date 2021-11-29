@@ -16,6 +16,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import com.google.android.material.snackbar.Snackbar
@@ -26,20 +27,10 @@ import kotlin.collections.ArrayList
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        const val REQUEST_CODE_PERMISSION = 1001
         const val UUID_SERVICE = "0000ffe0-0000-1000-8000-00805f9b34fb"
-        const val UUID_TX = "0000ffe1-0000-1000-8000-00805f9b34fb"
-        const val UUID_RX = "0000ffe1-0000-1000-8000-00805f9b34fb"
-
-        const val SERVICE_STRING = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
-//        const val CHARACTERISTIC_COMMAND_STRING = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
-//        const val CHARACTERISTIC_RESPONSE_STRING = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
         const val CHARACTERISTIC_COMMAND_STRING = "0000ffe1-0000-1000-8000-00805f9b34fb"
         const val CHARACTERISTIC_RESPONSE_STRING = "0000ffe1-0000-1000-8000-00805f9b34fb"
-
-        //BluetoothGattDescriptor 고정
-        const val CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -47,8 +38,6 @@ class MainActivity : AppCompatActivity() {
     private var btAdapter: BluetoothAdapter? = null
     private var btDevices: ArrayList<BluetoothDevice> = arrayListOf()
 
-    private var btServerSocket: BluetoothServerSocket? = null
-    private var connectedThread: ConnectedThread? = null
     private var btGatt: BluetoothGatt? = null
 
     private var scanning = false
@@ -64,11 +53,25 @@ class MainActivity : AppCompatActivity() {
 
         // Lock button
         binding.cardMainLock.setOnClickListener {
-            write("")
+            if (btGatt != null) {
+                write("l")
+            }
         }
 
         // Unlock button
         binding.cardMainUnlock.setOnClickListener {
+            if (btGatt != null) {
+                val editText = EditText(this)
+
+                val alert = AlertDialog.Builder(this)
+                alert.setTitle(R.string.password)
+                    .setView(editText)
+                    .setPositiveButton(R.string.confirm) { d, _ ->
+                        write("u${editText.text.toString()}")
+                    }
+                    .setNegativeButton(R.string.cancel) { d, _ -> d.dismiss() }
+                    .show()
+            }
         }
     }
 
@@ -311,5 +314,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         return super.onCreateOptionsMenu(menu)
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (btGatt != null) {
+            btGatt!!.disconnect()
+        }
     }
 }

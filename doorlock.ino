@@ -4,6 +4,8 @@
 #include <Servo.h>
 #include <Keypad.h>
 
+const int THERMAL_LIMIT = 500;
+
 const byte KEY_ROWS = 4;
 const byte KEY_COLS = 4;
 const char KEYS[KEY_ROWS][KEY_COLS] = {
@@ -13,7 +15,7 @@ const char KEYS[KEY_ROWS][KEY_COLS] = {
   {'*', '0', '#', 'x'}
 };
 
-const byte PIN_THERMAL = A2;
+const byte PIN_TEMPERATURE = A2;
 const byte PIN_DOOR_SENSOR = 2;
 const byte PIN_BT_RX = 4;
 const byte PIN_BT_TX = 5;
@@ -73,6 +75,16 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // Fire detection
+  int temp = analogRead(PIN_TEMPERATURE);
+  if (temp > THERMAL_LIMIT) {
+    locked = false;
+    servo.write(0);
+
+    delay(5000);
+    return;
+  }
 
   // Detect door closing
   if (!digitalRead(PIN_DOOR_SENSOR) && !locked) {
@@ -154,7 +166,6 @@ void loop() {
 
       if (inputCursor >= 6) {
         if (checkPw()) {
-          clearInput();
 
           locked = false;
           servo.write(0);
@@ -179,6 +190,7 @@ void loop() {
         }
 
         // Clear input
+        clearInput();
         mode = 0;
         printMenu();
 
@@ -260,6 +272,7 @@ void printMenu() {
         lcd.print("Enter pw");
       }
       break;
+
   }
 }
 
