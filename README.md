@@ -11,6 +11,10 @@
     - [Libraries](#libraries)
     - [전역변수](#전역변수)
     - [상수 및 기타 변수](#상수-및-기타-변수)
+    - [함수](#함수)
+      - [`void PrintMenu()`](#void-printmenu)
+      - [`void clearInput()`](#void-clearinput)
+      - [`bool checkPw()`](#bool-checkpw)
 
 ---
 
@@ -48,8 +52,8 @@ char input[6] = {'n', 'n', 'n', 'n', 'n', 'n'};
 byte inputCursor = 0;
 
 byte mode = 0;
-boolean locked = false;
-boolean pwChecked = false;
+bool locked = false;
+bool pwChecked = false;
 ```
 * `char password[]`: 도어락의 비밀번호를 저장하기 위한 변수
   * 초기 비밀번호는 `000000`
@@ -60,8 +64,8 @@ boolean pwChecked = false;
   * 0: 메인 메뉴
   * 1: 잠금 해제 모드
   * 2: 비밀번호 변경 모드
-* `boolean locked`: 현재 잠금 상태를 저장하기 위한 변수
-* `boolean pwChecked`: 비밀번호 변경 등 비밀번호 확인이 필요한 메뉴에서 인증이 되었는지 여부를 판별하기 위한 변수
+* `bool locked`: 현재 잠금 상태를 저장하기 위한 변수
+* `bool pwChecked`: 비밀번호 변경 등 비밀번호 확인이 필요한 메뉴에서 인증이 되었는지 여부를 판별하기 위한 변수
 
 ### 상수 및 기타 변수
 ```c++
@@ -97,3 +101,73 @@ Keypad pad = Keypad(makeKeymap(KEYS),
 // 서보모터
 Servo servo;
 ```
+
+### 함수
+```c++
+void printMenu();
+void clearInput();
+bool checkPw();
+```
+
+#### `void PrintMenu()`
+```c++
+void printMenu() {
+  lcd.init();
+  switch (mode) {
+    case 0: // Main menu mode
+      lcd.setCursor(1, 0);
+      lcd.print("1. Unlock");
+      lcd.setCursor(1, 1);
+      lcd.print("2. Change PW");
+      break;
+
+    case 1: // Unlock mode
+      lcd.setCursor(4, 0);
+      lcd.print("Password");
+      break;
+
+    case 2: // Settings mode
+      if (pwChecked) {
+        lcd.setCursor(2, 0);
+        lcd.print("Enter new pw");
+      } else {
+        lcd.setCursor(4, 0);
+        lcd.print("Enter pw");
+      }
+      break;
+
+  }
+}
+```
+* 전역 변수 `mode`에 따라 I2C LCD에 화면을 출력합니다.
+* `mode 0`: 메인 메뉴로, 1번을 눌러 잠금 해제하거나 2번을 눌러 비밀번호를 변경할 수 있습니다.
+* `mode 1`: 설정된 비밀번호를 입력하면 잠금 해제합니다.
+* `mode 2`: 전역 변수 `pwChecked`에 따라 비밀번호 확인 절차를 거치고 새 비밀번호를 입력하도록 안내합니다.
+
+#### `void clearInput()`
+```c++
+void clearInput() {
+  for (int i = 0; i < 6; i++) {
+    input[i] = 'n';
+  }
+  inputCursor = 0;
+}
+```
+* 사용자의 입력은 전역변수 `input`에 저장됩니다.
+* 입력이 완료되었거나 취소되면 이 함수에 의해 `input` 변수에 저장된 값이 'n'으로 초기화됩니다.
+
+#### `bool checkPw()`
+```c++
+bool checkPw() {
+  bool correct = true;
+  for (int i = 0; i < 6; i++) {
+    if (password[i] != input[i]) {
+      correct = false;
+      break;
+    }
+  }
+
+  return correct;
+}
+```
+* 사용자의 입력 `input`과 설정된 비밀번호 `password`를 비교하여 비밀번호가 일치하는지 확인합니다.
