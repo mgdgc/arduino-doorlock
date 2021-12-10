@@ -15,6 +15,7 @@
       - [`void PrintMenu()`](#void-printmenu)
       - [`void clearInput()`](#void-clearinput)
       - [`bool checkPw()`](#bool-checkpw)
+    - [`setup()`](#setup)
 
 ---
 
@@ -34,6 +35,10 @@
 
 ## doorlock.ino
 ### Libraries
+
+<details>
+<summary>코드 보기</summary>
+
 ```c++
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
@@ -42,10 +47,17 @@
 #include <Keypad.h>
 ```
 
+</details>
+
 * I2C LCD 디스플레이를 사용하기 위해 [LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C) 라이브러리를 포함해야 합니다.
 * 간단하게 4x4(or 3x4) 키패드를 사용하기 위해 [Keypad](https://playground.arduino.cc/Code/Keypad/) 라이브러리를 추가합니다.
 
+
 ### 전역변수
+
+<details>
+<summary>코드 보기</summary>
+
 ```c++
 char password[6] = {'0', '0', '0', '0', '0', '0'};
 char input[6] = {'n', 'n', 'n', 'n', 'n', 'n'};
@@ -55,6 +67,9 @@ byte mode = 0;
 bool locked = false;
 bool pwChecked = false;
 ```
+
+</details>
+
 * `char password[]`: 도어락의 비밀번호를 저장하기 위한 변수
   * 초기 비밀번호는 `000000`
 * `char input[]`: 사용자의 입력을 저장하기 위한 변수
@@ -67,7 +82,12 @@ bool pwChecked = false;
 * `bool locked`: 현재 잠금 상태를 저장하기 위한 변수
 * `bool pwChecked`: 비밀번호 변경 등 비밀번호 확인이 필요한 메뉴에서 인증이 되었는지 여부를 판별하기 위한 변수
 
+
 ### 상수 및 기타 변수
+
+<details>
+<summary>코드 보기</summary>
+
 ```c++
 const int THERMAL_LIMIT = 500; // 화재 인식 범위
 
@@ -102,6 +122,9 @@ Keypad pad = Keypad(makeKeymap(KEYS),
 Servo servo;
 ```
 
+</details>
+
+
 ### 함수
 ```c++
 void printMenu();
@@ -110,6 +133,10 @@ bool checkPw();
 ```
 
 #### `void PrintMenu()`
+
+<details>
+<summary>코드 보기</summary>
+
 ```c++
 void printMenu() {
   lcd.init();
@@ -139,12 +166,19 @@ void printMenu() {
   }
 }
 ```
+
+</details>
+
 * 전역 변수 `mode`에 따라 I2C LCD에 화면을 출력합니다.
 * `mode 0`: 메인 메뉴로, 1번을 눌러 잠금 해제하거나 2번을 눌러 비밀번호를 변경할 수 있습니다.
 * `mode 1`: 설정된 비밀번호를 입력하면 잠금 해제합니다.
 * `mode 2`: 전역 변수 `pwChecked`에 따라 비밀번호 확인 절차를 거치고 새 비밀번호를 입력하도록 안내합니다.
 
 #### `void clearInput()`
+
+<details>
+<summary>코드 보기</summary>
+
 ```c++
 void clearInput() {
   for (int i = 0; i < 6; i++) {
@@ -153,10 +187,17 @@ void clearInput() {
   inputCursor = 0;
 }
 ```
+
+</details>
+
 * 사용자의 입력은 전역변수 `input`에 저장됩니다.
 * 입력이 완료되었거나 취소되면 이 함수에 의해 `input` 변수에 저장된 값이 'n'으로 초기화됩니다.
 
 #### `bool checkPw()`
+
+<details>
+<summary>코드 보기</summary>
+
 ```c++
 bool checkPw() {
   bool correct = true;
@@ -170,4 +211,48 @@ bool checkPw() {
   return correct;
 }
 ```
+
+</details>
+
 * 사용자의 입력 `input`과 설정된 비밀번호 `password`를 비교하여 비밀번호가 일치하는지 확인합니다.
+
+
+### `setup()`
+
+<details>
+<summary>코드 보기</summary>
+
+```c++
+void setup() {
+  // put your setup code here, to run once:
+
+  Serial.begin(9600);
+
+  // Initialize servo
+  servo.attach(PIN_SERVO);
+  servo.write(0);
+
+  // Initiailize bluetooth
+  bt.begin(9600);
+
+  // Initialize button (proximity replacement)
+  pinMode(PIN_DOOR_SENSOR, INPUT);
+
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(3, 0);
+  lcd.print("PW: 000000");
+  lcd.setCursor(0, 1);
+  lcd.print("Press any button");
+
+  char key;
+  while (!(key = pad.getKey())) {
+    delay(100);
+  }
+
+  printMenu();
+
+}
+```
+
+</details>
