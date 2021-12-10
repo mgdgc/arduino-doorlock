@@ -17,6 +17,8 @@
       - [`void clearInput()`](#void-clearinput)
       - [`bool checkPw()`](#bool-checkpw)
     - [`setup()`](#setup)
+    - [`loop()`](#loop)
+  - [안드로이드 애플리케이션](#안드로이드-애플리케이션)
 
 ---
 
@@ -257,3 +259,268 @@ void setup() {
 ```
 
 </details>
+
+* `setup()` 함수는 처음 한 번만 실행됩니다.
+* 각 센서와 액추에이터 핀을 설정하고 초기화합니다.
+* 초기 비밀번호를 사용자에게 고지합니다.
+* 사용자의 입력을 대기하고, 아무 키나 눌리면 `loop()` 함수로 진행할 수 있도록 합니다.
+
+
+### `loop()` 
+
+```c++
+void loop() {
+  // put your main code here, to run repeatedly:
+
+  // 화재 감지
+  ...
+
+  // 문 닫힘 감지
+  ...
+
+  // 블루투스 인식
+  ...
+
+  // 키 입력
+  ...
+
+  // 입력된 키에 따라 기능 수행
+
+  delay(50);
+}
+```
+
+* `loop()` 함수는 위와 같은 구성으로 이루어져 있습니다.
+* 아래 코드 보기를 클릭하여 자세한 설명을 확인할 수 있습니다.
+
+<details>
+<summary>코드 보기</summary>
+
+```c++
+// 화재 감지
+  int temp = analogRead(PIN_TEMPERATURE);
+  if (temp > THERMAL_LIMIT) {
+    locked = false;
+    servo.write(0);
+
+    delay(5000);
+    return;
+  }
+```
+
+* NTC Thermister에서 현재 온도를 측정하여 상수로 선언되어 있는 `PIN_TEMPERATURE`의 값보다 높다면 이후의 코드를 모두 무시하고 잠금이 해제됩니다.
+
+```c++
+  // 문 닫힘 감지
+  if (!digitalRead(PIN_DOOR_SENSOR) && !locked) {
+    locked = true;
+    servo.write(90);
+
+    lcd.init();
+    lcd.setCursor(5, 0);
+    lcd.print("Locked");
+
+    delay(1000);
+    printMenu();
+  }
+```
+
+* 문이 열려 있는 상태에서 마그네틱 도어 센서가 인식되면 서보모터를 동작시켜 문을 닫습니다.
+
+```c++
+  // 블루투스 인식
+  if (bt.available()) {
+    byte data = bt.read();
+    if (data == 'u') {
+      bool pass = true;
+      for (int i = 0; bt.available() && i < 6; i++) {
+        if (bt.read() != password[i]) {
+          pass = false;
+          break;
+        }
+      }
+
+      if (pass) {
+        servo.write(0);
+
+        lcd.init();
+        lcd.setCursor(3, 0);
+        lcd.print("Bluetooth");
+        lcd.setCursor(4, 1);
+        lcd.print("Unlocked");
+
+        delay(3000);
+        printMenu();
+
+      }
+
+    } else if (data == 'l') {
+      servo.write(90);
+
+      lcd.init();
+      lcd.setCursor(3, 0);
+      lcd.print("Bluetooth");
+      lcd.setCursor(5, 1);
+      lcd.print("Locked");
+
+      delay(1000);
+      printMenu();
+    }
+  }
+```
+
+* 블루투스 장비로부터 수신된 메시지에 따라 동작을 수행합니다.
+* `l` 명령어가 입력되면 서보모터를 90° 회전시켜 문을 잠급니다.
+* `u` 명령어가 입력되면 이후 따라오는 6자리 PIN을 설정된 비밀번호와 비교하여 일치하면 잠금을 해제합니다.
+  * `u012345` 가 입력된 경우, `u` 는 명령어로, `012345`는 비밀번호로 인식합니다.
+
+```c++
+char key = pad.getKey();
+
+if (!key) {
+  delay(50);
+  return;
+}
+```
+
+* 키패드에서 입력된 키를 저장하고, 만약 입력된 키가 없다면 `loop()` 함수로 리턴합니다.
+
+```c++
+switch (mode) {
+  case 0: // Main menu mode
+    ...
+    break;
+
+  case 1: // Unlock mode
+    ...
+    break;
+
+  case 2: // Settings mode
+    ...
+    break;
+}
+```
+
+* 전역 변수 `mode`에 저장된 값에 따라 다른 기능을 수행합니다.
+
+```c++
+case 0: // Main menu mode
+  if (key == '1') {
+      mode = 1;
+      printMenu();
+    } else if (key == '2') {
+      mode = 2;
+      printMenu();
+    }
+    break;
+```
+
+* 메인 메뉴에서는 입력된 키의 값에 따라 전역 변수 `mode`를 설정하고, 화면을 출력합니다.
+
+```c++
+case 1: // Unlock mode
+    input[inputCursor++] = key;
+    lcd.setCursor(4 + inputCursor, 1);
+    lcd.print(key);
+
+    if (inputCursor >= 6) {
+      if (checkPw()) {
+
+        locked = false;
+        servo.write(0);
+
+        lcd.init();
+        lcd.setCursor(4, 0);
+        lcd.print("Welcome!");
+        lcd.setCursor(4, 1);
+        lcd.print("Unlocked");
+
+        delay(3000);
+
+      } else {
+
+        lcd.init();
+        lcd.setCursor(5, 0);
+        lcd.print("Wrong");
+        lcd.setCursor(4, 1);
+        lcd.print("Password");
+
+        delay(1000);
+      }
+
+      // Clear input
+      clearInput();
+      mode = 0;
+      printMenu();
+
+    }
+    break;
+```
+
+* 잠금 해제 모드에서는 사용자가 입력한 키를 전역 변수 `input`에 저장하고, 6자리가 모두 입력되었다면 설정된 비밀번호와 비교하여 잠금을 해제합니다.
+  * 여기에서 사용자가 입력한 `input` 위치를 판별하는데 `inputCursor` 전역 변수가 사용됩니다.
+  * 비밀번호가 올바른지, 틀린지에 따라 화면에 메시지를 출력합니다.
+
+
+```c++
+case 2: // Settings mode
+    input[inputCursor++] = key;
+    lcd.setCursor(4 + inputCursor, 1);
+    lcd.print(key);
+
+    if (inputCursor >= 6) {
+      if (pwChecked) {
+        pwChecked = false;
+
+        for (int i = 0; i < 6; i++) {
+          password[i] = input[i];
+        }
+
+        lcd.init();
+        lcd.setCursor(4, 0);
+        lcd.print("Password");
+        lcd.setCursor(4, 1);
+        lcd.print("Changed!");
+
+        delay(1000);
+
+        mode = 0;
+        printMenu();
+
+      } else {
+        if (checkPw()) {
+          pwChecked = true;
+          printMenu();
+        } else {
+          pwChecked = false;
+
+          lcd.init();
+          lcd.setCursor(5, 0);
+          lcd.print("Wrong");
+          lcd.setCursor(4, 1);
+          lcd.print("Password");
+
+          delay(1000);
+
+          mode = 0;
+          printMenu();
+        }
+      }
+      clearInput();
+    }
+    break;
+```
+
+* 잠금 해제 모드와 비슷한 동작을 수행합니다.
+* 단, 비밀번호 변경 모드에서는 1차로 비밀번호를 확인한 후에 잠금을 해제하는 대신 새 비밀번호를 입력받도록 합니다.
+* 새 비밀번호가 모두 입력되면 이를 전역 변수 `password`에 저장하여 비밀번호를 변경합니다.
+
+</details>
+
+
+---
+
+## 안드로이드 애플리케이션
+* 안드로이드 애플리케이션의 코드는 [android](/android/)에서 확인하실 수 있습니다.
+* 안드로이드 앱은 HM-10 모듈과 블루투스 4.0 BLE로 통신하며, 이를 위해 Bluetooth Gatt을 사용합니다.
+* 안드로이드 앱은 Kotlin으로 작성되어 있습니다.
