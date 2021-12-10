@@ -308,7 +308,7 @@ void loop() {
   }
 ```
 
-* NTC Thermister에서 현재 온도를 측정하여 상수로 선언되어 있는 `PIN_TEMPERATURE`의 값보다 높다면 이후의 코드를 모두 무시하고 잠금이 해제됩니다.
+* NTC Thermister에서 현재 온도를 측정하여 상수로 선언되어 있는 `THERMAL_LIMIT`의 값보다 높다면 이후의 코드를 모두 무시하고 잠금이 해제됩니다.
 
 ```c++
   // 문 닫힘 감지
