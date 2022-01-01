@@ -1,4 +1,4 @@
-<img src="img.png" width="720px"/>
+<img src="img.png" width="640px"/>
 
 
 # 아두이노 도어락
